@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DGG Polls — Dashboard</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0c;
+      --surface: #111114;
+      --border: #1e1e24;
+      --border-light: #2a2a32;
+      --text: #e4e4e8;
+      --text-dim: #7a7a86;
+      --text-muted: #52525c;
+      --accent: #6e6eff;
+      --accent-dim: rgba(110, 110, 255, 0.12);
+      --green: #34d399;
+      --green-dim: rgba(52, 211, 153, 0.12);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251, 191, 36, 0.12);
+      --rose: #f87171;
+      --rose-dim: rgba(248, 113, 113, 0.12);
+      --cyan: #22d3ee;
+      --cyan-dim: rgba(34, 211, 238, 0.12);
+      --radius: 10px;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 48px;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .header p {
+      color: var(--text-dim);
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    /* Metric Cards */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+    .metric {
+      background: var(--surface);
+      padding: 24px;
+    }
+    .metric-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+    .metric-value {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      font-family: var(--mono);
+    }
+    .metric-sub {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* Grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .grid-full {
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 20px 24px 16px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .card-body {
+      padding: 0 24px 24px;
+    }
+
+    /* Charts */
+    .chart-container {
+      position: relative;
+      width: 100%;
+    }
+    .chart-container svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Bar chart */
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 160px;
+      padding-top: 8px;
+    }
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+    }
+    .bar {
+      width: 100%;
+      border-radius: 3px 3px 0 0;
+      transition: opacity 0.2s;
+      min-height: 2px;
+    }
+    .bar:hover {
+      opacity: 0.8;
+    }
+    .bar-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      font-family: var(--mono);
+    }
+
+    /* Hourly heatmap */
+    .heatmap {
+      display: grid;
+      grid-template-columns: repeat(24, 1fr);
+      gap: 3px;
+    }
+    .heat-cell {
+      aspect-ratio: 1;
+      border-radius: 3px;
+      position: relative;
+    }
+    .heat-cell:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #222;
+      color: var(--text);
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      font-family: var(--mono);
+      z-index: 10;
+      pointer-events: none;
+    }
+    .heat-labels {
+      display: grid;
+      grid-template-columns: repeat(24, 1fr);
+      gap: 3px;
+      margin-top: 6px;
+    }
+    .heat-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-align: center;
+      font-family: var(--mono);
+    }
+
+    /* Day of week */
+    .dow-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .dow-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dow-label {
+      width: 36px;
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .dow-bar-track {
+      flex: 1;
+      height: 24px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .dow-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+    .dow-value {
+      width: 48px;
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* Table */
+    .table-wrap {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead th {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      text-align: left;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    thead th:last-child,
+    tbody td:last-child {
+      text-align: right;
+    }
+    tbody td {
+      font-size: 13px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+    tbody tr:hover td {
+      background: rgba(255,255,255, 0.02);
+    }
+    .rank {
+      font-family: var(--mono);
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .creator-name {
+      color: var(--text);
+      font-weight: 500;
+    }
+    .poll-q {
+      color: var(--text);
+      font-weight: 400;
+      max-width: 460px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .mono {
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    /* Sparkline area chart */
+    .area-chart {
+      position: relative;
+    }
+    .area-chart svg {
+      display: block;
+    }
+    .chart-grid-line {
+      stroke: var(--border);
+      stroke-width: 0.5;
+    }
+    .chart-label {
+      fill: var(--text-muted);
+      font-size: 10px;
+      font-family: var(--mono);
+    }
+    .chart-line {
+      fill: none;
+      stroke-width: 1.5;
+    }
+    .chart-area {
+      opacity: 0.08;
+    }
+    .chart-dot {
+      r: 2.5;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .chart-dot:hover {
+      opacity: 1;
+    }
+
+    /* Tag / badge */
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-family: var(--mono);
+    }
+    .badge-accent { background: var(--accent-dim); color: var(--accent); }
+    .badge-green { background: var(--green-dim); color: var(--green); }
+
+    /* Year timeline */
+    .timeline {
+      display: flex;
+      gap: 1px;
+      background: var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .timeline-segment {
+      padding: 16px 20px;
+      background: var(--surface);
+      flex: 1;
+      text-align: center;
+    }
+    .timeline-year {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      margin-bottom: 4px;
+    }
+    .timeline-count {
+      font-size: 20px;
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+    .timeline-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Monthly chart x-labels */
+    .month-labels {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0 0;
+    }
+    .month-label-item {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <div class="header">
+      <h1>DGG Poll Analytics</h1>
+      <p>6,276 polls tracked from April 2023 to February 2026</p>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Total Polls</div>
+        <div class="metric-value">6,276</div>
+        <div class="metric-sub">Since Apr 2023</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Total Votes</div>
+        <div class="metric-value">782,164</div>
+        <div class="metric-sub">Across all polls</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Avg Votes / Poll</div>
+        <div class="metric-value">124.6</div>
+        <div class="metric-sub">Median participation</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Peak Votes</div>
+        <div class="metric-value">1,732</div>
+        <div class="metric-sub">Single poll record</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Unique Creators</div>
+        <div class="metric-value" id="unique-creators">—</div>
+        <div class="metric-sub">Poll organizers</div>
+      </div>
+    </div>
+
+    <!-- Year breakdown -->
+    <div class="timeline">
+      <div class="timeline-segment">
+        <div class="timeline-year">2023</div>
+        <div class="timeline-count">279</div>
+        <div class="timeline-label">polls</div>
+      </div>
+      <div class="timeline-segment">
+        <div class="timeline-year">2024</div>
+        <div class="timeline-count">884</div>
+        <div class="timeline-label">polls</div>
+      </div>
+      <div class="timeline-segment">
+        <div class="timeline-year">2025</div>
+        <div class="timeline-count">3,711</div>
+        <div class="timeline-label">polls</div>
+      </div>
+      <div class="timeline-segment">
+        <div class="timeline-year">2026</div>
+        <div class="timeline-count">1,402</div>
+        <div class="timeline-label">polls (YTD)</div>
+      </div>
+    </div>
+
+    <!-- Monthly Charts -->
+    <div class="grid-full">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Monthly Poll Volume</span>
+          <span class="card-subtitle">Polls created per month</span>
+        </div>
+        <div class="card-body">
+          <div class="bar-chart" id="monthly-chart"></div>
+          <div class="month-labels" id="monthly-labels"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Avg Votes Trend + Hourly Activity -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Avg Votes per Poll</span>
+          <span class="card-subtitle">Monthly trend</span>
+        </div>
+        <div class="card-body">
+          <div class="area-chart" id="avg-chart"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Activity by Hour (UTC)</span>
+          <span class="card-subtitle">Poll creation time distribution</span>
+        </div>
+        <div class="card-body">
+          <div class="bar-chart" id="hourly-chart" style="height:120px;"></div>
+          <div class="heat-labels">
+            <span class="heat-label">0</span><span class="heat-label"></span>
+            <span class="heat-label">2</span><span class="heat-label"></span>
+            <span class="heat-label">4</span><span class="heat-label"></span>
+            <span class="heat-label">6</span><span class="heat-label"></span>
+            <span class="heat-label">8</span><span class="heat-label"></span>
+            <span class="heat-label">10</span><span class="heat-label"></span>
+            <span class="heat-label">12</span><span class="heat-label"></span>
+            <span class="heat-label">14</span><span class="heat-label"></span>
+            <span class="heat-label">16</span><span class="heat-label"></span>
+            <span class="heat-label">18</span><span class="heat-label"></span>
+            <span class="heat-label">20</span><span class="heat-label"></span>
+            <span class="heat-label">22</span><span class="heat-label"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Day of Week + Option Distribution -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Day of Week</span>
+          <span class="card-subtitle">Poll creation frequency</span>
+        </div>
+        <div class="card-body">
+          <div class="dow-chart" id="dow-chart"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Options per Poll</span>
+          <span class="card-subtitle">Distribution of answer choices</span>
+        </div>
+        <div class="card-body">
+          <div class="dow-chart" id="options-chart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Creators -->
+    <div class="grid-full">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Top Poll Creators</span>
+          <span class="card-subtitle">By number of polls created</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:40px">#</th>
+                  <th>Creator</th>
+                  <th>Polls</th>
+                  <th>Total Votes</th>
+                  <th>Avg Votes</th>
+                </tr>
+              </thead>
+              <tbody id="creators-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Polls -->
+    <div class="grid-full">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Most Voted Polls</span>
+          <span class="card-subtitle">All-time highest participation</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:40px">#</th>
+                  <th>Question</th>
+                  <th>Creator</th>
+                  <th>Date</th>
+                  <th>Votes</th>
+                </tr>
+              </thead>
+              <tbody id="polls-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center; margin-top:48px; padding-top:24px; border-top:1px solid var(--border);">
+      <p style="font-size:12px; color:var(--text-muted);">
+        Data sourced from polls.json &middot; 6,276 polls &middot; Generated Feb 2026
+      </p>
+    </div>
+
+  </div>
+
+  <script>
+    // ── Data ──────────────────────────────────────────────
+    const monthlyData = [
+      { m: '2023-04', count: 42, votes: 14953 },
+      { m: '2023-05', count: 30, votes: 10933 },
+      { m: '2023-06', count: 53, votes: 9620 },
+      { m: '2023-07', count: 28, votes: 5832 },
+      { m: '2023-08', count: 14, votes: 3196 },
+      { m: '2023-09', count: 19, votes: 5184 },
+      { m: '2023-10', count: 8, votes: 1960 },
+      { m: '2023-11', count: 7, votes: 960 },
+      { m: '2023-12', count: 78, votes: 14817 },
+      { m: '2024-01', count: 73, votes: 14134 },
+      { m: '2024-02', count: 32, votes: 5030 },
+      { m: '2024-03', count: 36, votes: 6866 },
+      { m: '2024-04', count: 82, votes: 10009 },
+      { m: '2024-05', count: 124, votes: 13199 },
+      { m: '2024-06', count: 73, votes: 7170 },
+      { m: '2024-07', count: 167, votes: 18349 },
+      { m: '2024-08', count: 58, votes: 11819 },
+      { m: '2024-09', count: 82, votes: 17846 },
+      { m: '2024-10', count: 68, votes: 14741 },
+      { m: '2024-11', count: 78, votes: 18017 },
+      { m: '2024-12', count: 11, votes: 905 },
+      { m: '2025-01', count: 11, votes: 1480 },
+      { m: '2025-02', count: 9, votes: 1307 },
+      { m: '2025-03', count: 14, votes: 2032 },
+      { m: '2025-04', count: 134, votes: 8527 },
+      { m: '2025-05', count: 267, votes: 25004 },
+      { m: '2025-06', count: 244, votes: 25977 },
+      { m: '2025-07', count: 266, votes: 23506 },
+      { m: '2025-08', count: 291, votes: 32407 },
+      { m: '2025-09', count: 379, votes: 43453 },
+      { m: '2025-10', count: 684, votes: 71767 },
+      { m: '2025-11', count: 750, votes: 80094 },
+      { m: '2025-12', count: 662, votes: 86952 },
+      { m: '2026-01', count: 895, votes: 121824 },
+      { m: '2026-02', count: 507, votes: 52294 },
+    ];
+
+    const hourlyData = [530,594,573,464,283,142,57,62,82,27,44,87,66,180,236,276,240,225,238,267,324,318,454,507];
+
+    const dowData = [
+      { day: 'Mon', count: 918 },
+      { day: 'Tue', count: 870 },
+      { day: 'Wed', count: 905 },
+      { day: 'Thu', count: 935 },
+      { day: 'Fri', count: 943 },
+      { day: 'Sat', count: 776 },
+      { day: 'Sun', count: 929 },
+    ];
+
+    const optionsData = [
+      { label: '1 opt', count: 211 },
+      { label: '2 opts', count: 4455 },
+      { label: '3 opts', count: 1177 },
+      { label: '4 opts', count: 339 },
+      { label: '5+ opts', count: 94 },
+    ];
+
+    const creatorsData = [
+      { name: 'RiN_LuX', polls: 3689, votes: 404422 },
+      { name: 'Bot', polls: 743, votes: 72970 },
+      { name: '4THOT', polls: 356, votes: 76866 },
+      { name: 'JaydrVernanda', polls: 308, votes: 43000 },
+      { name: 'cybervegan', polls: 237, votes: 14226 },
+      { name: 'RightToBearArmsLOL', polls: 228, votes: 36354 },
+      { name: 'Bing', polls: 110, votes: 12700 },
+      { name: 'MrMouton', polls: 103, votes: 19659 },
+      { name: 'dancantstream', polls: 82, votes: 19304 },
+      { name: 'Mitch', polls: 75, votes: 9506 },
+      { name: 'Destiny', polls: 58, votes: 23364 },
+      { name: 'Lemmiwinks', polls: 49, votes: 9767 },
+      { name: 'Linusred', polls: 46, votes: 11358 },
+      { name: 'tena', polls: 45, votes: 2306 },
+      { name: 'Ninou', polls: 44, votes: 5035 },
+    ];
+
+    const topPolls = [
+      { votes: 1732, creator: 'RightToBearArmsLOL', date: '2024-11-06', q: 'which do you prefer?' },
+      { votes: 994, creator: 'Destiny', date: '2023-05-22', q: 'Have you ever taken Adderall (prescribed or otherwise) for more than 1 month at a time?' },
+      { votes: 983, creator: 'Destiny', date: '2023-09-12', q: 'Should we watch the Brittany video on Darius/Xena?' },
+      { votes: 968, creator: 'Destiny', date: '2023-05-09', q: 'Would you be okay having a FFM threesome with your girlfriend?' },
+      { votes: 940, creator: 'Destiny', date: '2023-05-09', q: 'Would you enjoy WATCHING your girlfriend, just doing FF with you not participating?' },
+      { votes: 897, creator: 'aestudio', date: '2024-07-25', q: 'ye* vs pepe?' },
+      { votes: 890, creator: 'Destiny', date: '2023-06-30', q: 'Do you wanna see a workout stream?' },
+      { votes: 887, creator: 'Destiny', date: '2023-06-27', q: 'What we do first?' },
+      { votes: 868, creator: 'Destiny', date: '2023-04-28', q: 'Who won point 1?' },
+      { votes: 867, creator: 'Destiny', date: '2023-04-28', q: 'Can you tell when Farha is telling a joke?' },
+      { votes: 861, creator: 'Destiny', date: '2023-05-06', q: 'If you tried sucking 1 dick but you absolutely hated it, are you..?' },
+      { votes: 838, creator: 'Bot', date: '2026-01-23', q: 'Should we ban destiny for 10m  Reason: troll retard' },
+      { votes: 835, creator: '4THOT', date: '2024-07-14', q: 'you are stuck listening to political opinions of someone, who do you pick?' },
+      { votes: 830, creator: 'Destiny', date: '2023-05-06', q: 'WHAT WOULD MOST PEOPLE SAY TO THIS: If you tried sucking 1 dick but you absolutely hated it...' },
+      { votes: 813, creator: 'Destiny', date: '2023-06-01', q: 'What we do?' },
+    ];
+
+    // ── Helpers ──────────────────────────────────────────
+    const fmt = (n) => n.toLocaleString('en-US');
+    const pct = (v, max) => ((v / max) * 100).toFixed(1);
+
+    // ── Monthly Bar Chart ────────────────────────────────
+    (function() {
+      const el = document.getElementById('monthly-chart');
+      const labels = document.getElementById('monthly-labels');
+      const max = Math.max(...monthlyData.map(d => d.count));
+
+      monthlyData.forEach((d, i) => {
+        const col = document.createElement('div');
+        col.className = 'bar-col';
+
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        const h = (d.count / max) * 100;
+        bar.style.height = h + '%';
+        bar.style.background = 'var(--accent)';
+        bar.title = `${d.m}: ${fmt(d.count)} polls, ${fmt(d.votes)} votes`;
+
+        col.appendChild(bar);
+        el.appendChild(col);
+      });
+
+      // Labels: show every 6 months
+      const showLabels = [0, 6, 12, 18, 24, 30, monthlyData.length - 1];
+      showLabels.forEach((idx) => {
+        if (idx < monthlyData.length) {
+          const sp = document.createElement('span');
+          sp.className = 'month-label-item';
+          sp.textContent = monthlyData[idx].m.replace('20', "'");
+          labels.appendChild(sp);
+        }
+      });
+    })();
+
+    // ── Average Votes SVG line chart ─────────────────────
+    (function() {
+      const el = document.getElementById('avg-chart');
+      const data = monthlyData.map(d => d.votes / d.count);
+      const w = 520, h = 160, pad = { t: 10, r: 10, b: 24, l: 40 };
+      const cw = w - pad.l - pad.r;
+      const ch = h - pad.t - pad.b;
+      const max = Math.max(...data);
+      const min = Math.min(...data);
+      const range = max - min || 1;
+
+      const x = (i) => pad.l + (i / (data.length - 1)) * cw;
+      const y = (v) => pad.t + ch - ((v - min) / range) * ch;
+
+      let pathD = data.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      let areaD = pathD + ` L${x(data.length - 1).toFixed(1)},${(pad.t + ch).toFixed(1)} L${x(0).toFixed(1)},${(pad.t + ch).toFixed(1)} Z`;
+
+      let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+
+      // Grid lines
+      const gridSteps = 4;
+      for (let i = 0; i <= gridSteps; i++) {
+        const gy = pad.t + (i / gridSteps) * ch;
+        const val = max - (i / gridSteps) * range;
+        svg += `<line x1="${pad.l}" y1="${gy}" x2="${w - pad.r}" y2="${gy}" class="chart-grid-line"/>`;
+        svg += `<text x="${pad.l - 6}" y="${gy + 3}" text-anchor="end" class="chart-label">${Math.round(val)}</text>`;
+      }
+
+      svg += `<path d="${areaD}" fill="var(--accent)" class="chart-area"/>`;
+      svg += `<path d="${pathD}" stroke="var(--accent)" class="chart-line"/>`;
+
+      // Dots
+      data.forEach((v, i) => {
+        svg += `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" class="chart-dot" fill="var(--accent)">
+          <title>${monthlyData[i].m}: ${v.toFixed(1)} avg votes</title>
+        </circle>`;
+      });
+
+      // X labels
+      const labelIdx = [0, Math.floor(data.length / 3), Math.floor(2 * data.length / 3), data.length - 1];
+      labelIdx.forEach(i => {
+        svg += `<text x="${x(i).toFixed(1)}" y="${h - 2}" text-anchor="middle" class="chart-label">${monthlyData[i].m.replace('20', "'")}</text>`;
+      });
+
+      svg += '</svg>';
+      el.innerHTML = svg;
+    })();
+
+    // ── Hourly Bar Chart ─────────────────────────────────
+    (function() {
+      const el = document.getElementById('hourly-chart');
+      const max = Math.max(...hourlyData);
+
+      hourlyData.forEach((v, i) => {
+        const col = document.createElement('div');
+        col.className = 'bar-col';
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        bar.style.height = ((v / max) * 100) + '%';
+        // Color intensity based on value
+        const intensity = v / max;
+        if (intensity > 0.7) bar.style.background = 'var(--cyan)';
+        else if (intensity > 0.4) bar.style.background = 'rgba(34, 211, 238, 0.6)';
+        else bar.style.background = 'rgba(34, 211, 238, 0.25)';
+        bar.title = `${String(i).padStart(2,'0')}:00 UTC — ${fmt(v)} polls`;
+        col.appendChild(bar);
+        el.appendChild(col);
+      });
+    })();
+
+    // ── Day of Week Chart ────────────────────────────────
+    (function() {
+      const el = document.getElementById('dow-chart');
+      const max = Math.max(...dowData.map(d => d.count));
+
+      dowData.forEach(d => {
+        const row = document.createElement('div');
+        row.className = 'dow-row';
+        row.innerHTML = `
+          <span class="dow-label">${d.day}</span>
+          <div class="dow-bar-track">
+            <div class="dow-bar-fill" style="width:${pct(d.count, max)}%;background:var(--green);"></div>
+          </div>
+          <span class="dow-value">${fmt(d.count)}</span>
+        `;
+        el.appendChild(row);
+      });
+    })();
+
+    // ── Options Distribution Chart ───────────────────────
+    (function() {
+      const el = document.getElementById('options-chart');
+      const max = Math.max(...optionsData.map(d => d.count));
+
+      optionsData.forEach(d => {
+        const row = document.createElement('div');
+        row.className = 'dow-row';
+        row.innerHTML = `
+          <span class="dow-label" style="width:48px">${d.label}</span>
+          <div class="dow-bar-track">
+            <div class="dow-bar-fill" style="width:${pct(d.count, max)}%;background:var(--amber);"></div>
+          </div>
+          <span class="dow-value">${fmt(d.count)}</span>
+        `;
+        el.appendChild(row);
+      });
+    })();
+
+    // ── Creators Table ───────────────────────────────────
+    (function() {
+      const el = document.getElementById('creators-table');
+      creatorsData.forEach((c, i) => {
+        const avg = (c.votes / c.polls).toFixed(1);
+        el.innerHTML += `<tr>
+          <td class="rank">${i + 1}</td>
+          <td class="creator-name">${c.name}</td>
+          <td class="mono">${fmt(c.polls)}</td>
+          <td class="mono">${fmt(c.votes)}</td>
+          <td class="mono">${avg}</td>
+        </tr>`;
+      });
+    })();
+
+    // ── Top Polls Table ──────────────────────────────────
+    (function() {
+      const el = document.getElementById('polls-table');
+      topPolls.forEach((p, i) => {
+        el.innerHTML += `<tr>
+          <td class="rank">${i + 1}</td>
+          <td class="poll-q" title="${p.q}">${p.q}</td>
+          <td style="color:var(--text-dim)">${p.creator}</td>
+          <td class="mono" style="color:var(--text-muted)">${p.date}</td>
+          <td class="mono" style="color:var(--text)"><strong>${fmt(p.votes)}</strong></td>
+        </tr>`;
+      });
+    })();
+
+    // ── Unique Creators count ────────────────────────────
+    // We know from the data there are many unique creators; use an approximate from the JSON
+    fetch('polls.json')
+      .then(r => r.json())
+      .then(data => {
+        const unique = new Set(data.map(p => p.startedBy)).size;
+        document.getElementById('unique-creators').textContent = fmt(unique);
+      })
+      .catch(() => {
+        document.getElementById('unique-creators').textContent = '—';
+      });
+  </script>
+</body>
+</html>
