@@ -413,29 +413,29 @@
     <!-- Header -->
     <div class="header">
       <h1>DGG Poll Analytics</h1>
-      <p>6,276 polls tracked from April 2023 to February 2026</p>
+      <p id="header-sub">Loading poll data…</p>
     </div>
 
     <!-- Key Metrics -->
     <div class="metrics">
       <div class="metric">
         <div class="metric-label">Total Polls</div>
-        <div class="metric-value">6,276</div>
-        <div class="metric-sub">Since Apr 2023</div>
+        <div class="metric-value">—</div>
+        <div class="metric-sub">Loading…</div>
       </div>
       <div class="metric">
         <div class="metric-label">Total Votes</div>
-        <div class="metric-value">782,164</div>
+        <div class="metric-value">—</div>
         <div class="metric-sub">Across all polls</div>
       </div>
       <div class="metric">
         <div class="metric-label">Avg Votes / Poll</div>
-        <div class="metric-value">124.6</div>
+        <div class="metric-value">—</div>
         <div class="metric-sub">Median participation</div>
       </div>
       <div class="metric">
         <div class="metric-label">Peak Votes</div>
-        <div class="metric-value">1,732</div>
+        <div class="metric-value">—</div>
         <div class="metric-sub">Single poll record</div>
       </div>
       <div class="metric">
@@ -447,26 +447,6 @@
 
     <!-- Year breakdown -->
     <div class="timeline">
-      <div class="timeline-segment">
-        <div class="timeline-year">2023</div>
-        <div class="timeline-count">279</div>
-        <div class="timeline-label">polls</div>
-      </div>
-      <div class="timeline-segment">
-        <div class="timeline-year">2024</div>
-        <div class="timeline-count">884</div>
-        <div class="timeline-label">polls</div>
-      </div>
-      <div class="timeline-segment">
-        <div class="timeline-year">2025</div>
-        <div class="timeline-count">3,711</div>
-        <div class="timeline-label">polls</div>
-      </div>
-      <div class="timeline-segment">
-        <div class="timeline-year">2026</div>
-        <div class="timeline-count">1,402</div>
-        <div class="timeline-label">polls (YTD)</div>
-      </div>
     </div>
 
     <!-- Monthly Charts -->
@@ -596,147 +576,168 @@
     <!-- Footer -->
     <div style="text-align:center; margin-top:48px; padding-top:24px; border-top:1px solid var(--border);">
       <p style="font-size:12px; color:var(--text-muted);">
-        Data sourced from polls.json &middot; 6,276 polls &middot; Generated Feb 2026
+        Data sourced from <a href="https://api.mitchdev.net/dgg/polls" style="color:var(--text-muted)">api.mitchdev.net</a> &middot; <span id="footer-count">—</span> polls &middot; Live data
       </p>
     </div>
 
   </div>
 
   <script>
-    // ── Data ──────────────────────────────────────────────
-    const monthlyData = [
-      { m: '2023-04', count: 42, votes: 14953 },
-      { m: '2023-05', count: 30, votes: 10933 },
-      { m: '2023-06', count: 53, votes: 9620 },
-      { m: '2023-07', count: 28, votes: 5832 },
-      { m: '2023-08', count: 14, votes: 3196 },
-      { m: '2023-09', count: 19, votes: 5184 },
-      { m: '2023-10', count: 8, votes: 1960 },
-      { m: '2023-11', count: 7, votes: 960 },
-      { m: '2023-12', count: 78, votes: 14817 },
-      { m: '2024-01', count: 73, votes: 14134 },
-      { m: '2024-02', count: 32, votes: 5030 },
-      { m: '2024-03', count: 36, votes: 6866 },
-      { m: '2024-04', count: 82, votes: 10009 },
-      { m: '2024-05', count: 124, votes: 13199 },
-      { m: '2024-06', count: 73, votes: 7170 },
-      { m: '2024-07', count: 167, votes: 18349 },
-      { m: '2024-08', count: 58, votes: 11819 },
-      { m: '2024-09', count: 82, votes: 17846 },
-      { m: '2024-10', count: 68, votes: 14741 },
-      { m: '2024-11', count: 78, votes: 18017 },
-      { m: '2024-12', count: 11, votes: 905 },
-      { m: '2025-01', count: 11, votes: 1480 },
-      { m: '2025-02', count: 9, votes: 1307 },
-      { m: '2025-03', count: 14, votes: 2032 },
-      { m: '2025-04', count: 134, votes: 8527 },
-      { m: '2025-05', count: 267, votes: 25004 },
-      { m: '2025-06', count: 244, votes: 25977 },
-      { m: '2025-07', count: 266, votes: 23506 },
-      { m: '2025-08', count: 291, votes: 32407 },
-      { m: '2025-09', count: 379, votes: 43453 },
-      { m: '2025-10', count: 684, votes: 71767 },
-      { m: '2025-11', count: 750, votes: 80094 },
-      { m: '2025-12', count: 662, votes: 86952 },
-      { m: '2026-01', count: 895, votes: 121824 },
-      { m: '2026-02', count: 507, votes: 52294 },
-    ];
-
-    const hourlyData = [530,594,573,464,283,142,57,62,82,27,44,87,66,180,236,276,240,225,238,267,324,318,454,507];
-
-    const dowData = [
-      { day: 'Mon', count: 918 },
-      { day: 'Tue', count: 870 },
-      { day: 'Wed', count: 905 },
-      { day: 'Thu', count: 935 },
-      { day: 'Fri', count: 943 },
-      { day: 'Sat', count: 776 },
-      { day: 'Sun', count: 929 },
-    ];
-
-    const optionsData = [
-      { label: '1 opt', count: 211 },
-      { label: '2 opts', count: 4455 },
-      { label: '3 opts', count: 1177 },
-      { label: '4 opts', count: 339 },
-      { label: '5+ opts', count: 94 },
-    ];
-
-    const creatorsData = [
-      { name: 'RiN_LuX', polls: 3689, votes: 404422 },
-      { name: 'Bot', polls: 743, votes: 72970 },
-      { name: '4THOT', polls: 356, votes: 76866 },
-      { name: 'JaydrVernanda', polls: 308, votes: 43000 },
-      { name: 'cybervegan', polls: 237, votes: 14226 },
-      { name: 'RightToBearArmsLOL', polls: 228, votes: 36354 },
-      { name: 'Bing', polls: 110, votes: 12700 },
-      { name: 'MrMouton', polls: 103, votes: 19659 },
-      { name: 'dancantstream', polls: 82, votes: 19304 },
-      { name: 'Mitch', polls: 75, votes: 9506 },
-      { name: 'Destiny', polls: 58, votes: 23364 },
-      { name: 'Lemmiwinks', polls: 49, votes: 9767 },
-      { name: 'Linusred', polls: 46, votes: 11358 },
-      { name: 'tena', polls: 45, votes: 2306 },
-      { name: 'Ninou', polls: 44, votes: 5035 },
-    ];
-
-    const topPolls = [
-      { votes: 1732, creator: 'RightToBearArmsLOL', date: '2024-11-06', q: 'which do you prefer?' },
-      { votes: 994, creator: 'Destiny', date: '2023-05-22', q: 'Have you ever taken Adderall (prescribed or otherwise) for more than 1 month at a time?' },
-      { votes: 983, creator: 'Destiny', date: '2023-09-12', q: 'Should we watch the Brittany video on Darius/Xena?' },
-      { votes: 968, creator: 'Destiny', date: '2023-05-09', q: 'Would you be okay having a FFM threesome with your girlfriend?' },
-      { votes: 940, creator: 'Destiny', date: '2023-05-09', q: 'Would you enjoy WATCHING your girlfriend, just doing FF with you not participating?' },
-      { votes: 897, creator: 'aestudio', date: '2024-07-25', q: 'ye* vs pepe?' },
-      { votes: 890, creator: 'Destiny', date: '2023-06-30', q: 'Do you wanna see a workout stream?' },
-      { votes: 887, creator: 'Destiny', date: '2023-06-27', q: 'What we do first?' },
-      { votes: 868, creator: 'Destiny', date: '2023-04-28', q: 'Who won point 1?' },
-      { votes: 867, creator: 'Destiny', date: '2023-04-28', q: 'Can you tell when Farha is telling a joke?' },
-      { votes: 861, creator: 'Destiny', date: '2023-05-06', q: 'If you tried sucking 1 dick but you absolutely hated it, are you..?' },
-      { votes: 838, creator: 'Bot', date: '2026-01-23', q: 'Should we ban destiny for 10m  Reason: troll retard' },
-      { votes: 835, creator: '4THOT', date: '2024-07-14', q: 'you are stuck listening to political opinions of someone, who do you pick?' },
-      { votes: 830, creator: 'Destiny', date: '2023-05-06', q: 'WHAT WOULD MOST PEOPLE SAY TO THIS: If you tried sucking 1 dick but you absolutely hated it...' },
-      { votes: 813, creator: 'Destiny', date: '2023-06-01', q: 'What we do?' },
-    ];
-
     // ── Helpers ──────────────────────────────────────────
     const fmt = (n) => n.toLocaleString('en-US');
     const pct = (v, max) => ((v / max) * 100).toFixed(1);
+    const escHtml = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-    // ── Monthly Bar Chart ────────────────────────────────
-    (function() {
+    // ── Aggregate raw poll data ─────────────────────────
+    function aggregate(data) {
+      const totalPolls = data.length;
+      const totalVotes = data.reduce((s, p) => s + p.totalVotes, 0);
+      const avgVotes = totalPolls ? (totalVotes / totalPolls) : 0;
+      const peakVotes = Math.max(...data.map(p => p.totalVotes));
+      const uniqueCreators = new Set(data.map(p => p.startedBy)).size;
+
+      // Date range
+      const dates = data.map(p => new Date(p.startTime));
+      const minDate = new Date(Math.min(...dates));
+      const maxDate = new Date(Math.max(...dates));
+
+      // Year breakdown
+      const yearMap = {};
+      data.forEach(p => {
+        const y = new Date(p.startTime).getFullYear();
+        yearMap[y] = (yearMap[y] || 0) + 1;
+      });
+      const years = Object.keys(yearMap).sort().map(y => ({ year: +y, count: yearMap[y] }));
+
+      // Monthly data
+      const monthMap = {};
+      data.forEach(p => {
+        const d = new Date(p.startTime);
+        const m = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+        if (!monthMap[m]) monthMap[m] = { count: 0, votes: 0 };
+        monthMap[m].count++;
+        monthMap[m].votes += p.totalVotes;
+      });
+      const monthlyData = Object.keys(monthMap).sort().map(m => ({ m, count: monthMap[m].count, votes: monthMap[m].votes }));
+
+      // Hourly data
+      const hourlyData = new Array(24).fill(0);
+      data.forEach(p => { hourlyData[new Date(p.startTime).getUTCHours()]++; });
+
+      // Day of week data
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dowCounts = new Array(7).fill(0);
+      data.forEach(p => { dowCounts[new Date(p.startTime).getUTCDay()]++; });
+      // Reorder to Mon-Sun
+      const dowData = [1,2,3,4,5,6,0].map(i => ({ day: dayNames[i], count: dowCounts[i] }));
+
+      // Options distribution
+      const optCounts = {};
+      data.forEach(p => {
+        const n = p.options.length;
+        const key = n >= 5 ? '5+' : String(n);
+        optCounts[key] = (optCounts[key] || 0) + 1;
+      });
+      const optLabels = ['1', '2', '3', '4', '5+'];
+      const optionsData = optLabels
+        .filter(k => optCounts[k])
+        .map(k => ({ label: k === '1' ? '1 opt' : `${k} opts`, count: optCounts[k] }));
+
+      // Top creators (top 15 by poll count)
+      const creatorMap = {};
+      data.forEach(p => {
+        if (!creatorMap[p.startedBy]) creatorMap[p.startedBy] = { polls: 0, votes: 0 };
+        creatorMap[p.startedBy].polls++;
+        creatorMap[p.startedBy].votes += p.totalVotes;
+      });
+      const creatorsData = Object.entries(creatorMap)
+        .map(([name, d]) => ({ name, polls: d.polls, votes: d.votes }))
+        .sort((a, b) => b.polls - a.polls)
+        .slice(0, 15);
+
+      // Top polls (top 15 by votes)
+      const topPolls = [...data]
+        .sort((a, b) => b.totalVotes - a.totalVotes)
+        .slice(0, 15)
+        .map(p => ({
+          votes: p.totalVotes,
+          creator: p.startedBy,
+          date: p.startTime.slice(0, 10),
+          q: p.question,
+        }));
+
+      return { totalPolls, totalVotes, avgVotes, peakVotes, uniqueCreators, minDate, maxDate, years, monthlyData, hourlyData, dowData, optionsData, creatorsData, topPolls };
+    }
+
+    // ── Render functions ─────────────────────────────────
+
+    function renderMetrics({ totalPolls, totalVotes, avgVotes, peakVotes, uniqueCreators, minDate }) {
+      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const since = `Since ${monthNames[minDate.getUTCMonth()]} ${minDate.getUTCFullYear()}`;
+      document.querySelector('.metric:nth-child(1) .metric-value').textContent = fmt(totalPolls);
+      document.querySelector('.metric:nth-child(1) .metric-sub').textContent = since;
+      document.querySelector('.metric:nth-child(2) .metric-value').textContent = fmt(totalVotes);
+      document.querySelector('.metric:nth-child(3) .metric-value').textContent = avgVotes.toFixed(1);
+      document.querySelector('.metric:nth-child(4) .metric-value').textContent = fmt(peakVotes);
+      document.getElementById('unique-creators').textContent = fmt(uniqueCreators);
+    }
+
+    function renderHeader({ totalPolls, minDate, maxDate }) {
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const from = `${monthNames[minDate.getUTCMonth()]} ${minDate.getUTCFullYear()}`;
+      const to = `${monthNames[maxDate.getUTCMonth()]} ${maxDate.getUTCFullYear()}`;
+      document.getElementById('header-sub').textContent = `${fmt(totalPolls)} polls tracked from ${from} to ${to}`;
+    }
+
+    function renderYears(years, currentYear) {
+      const el = document.querySelector('.timeline');
+      el.innerHTML = '';
+      years.forEach(y => {
+        const seg = document.createElement('div');
+        seg.className = 'timeline-segment';
+        const label = y.year === currentYear ? 'polls (YTD)' : 'polls';
+        seg.innerHTML = `
+          <div class="timeline-year">${y.year}</div>
+          <div class="timeline-count">${fmt(y.count)}</div>
+          <div class="timeline-label">${label}</div>
+        `;
+        el.appendChild(seg);
+      });
+    }
+
+    function renderMonthlyChart(monthlyData) {
       const el = document.getElementById('monthly-chart');
       const labels = document.getElementById('monthly-labels');
+      el.innerHTML = '';
+      labels.innerHTML = '';
       const max = Math.max(...monthlyData.map(d => d.count));
 
-      monthlyData.forEach((d, i) => {
+      monthlyData.forEach(d => {
         const col = document.createElement('div');
         col.className = 'bar-col';
-
         const bar = document.createElement('div');
         bar.className = 'bar';
-        const h = (d.count / max) * 100;
-        bar.style.height = h + '%';
+        bar.style.height = ((d.count / max) * 100) + '%';
         bar.style.background = 'var(--accent)';
         bar.title = `${d.m}: ${fmt(d.count)} polls, ${fmt(d.votes)} votes`;
-
         col.appendChild(bar);
         el.appendChild(col);
       });
 
-      // Labels: show every 6 months
       const showLabels = [0, 6, 12, 18, 24, 30, monthlyData.length - 1];
-      showLabels.forEach((idx) => {
-        if (idx < monthlyData.length) {
+      const seen = new Set();
+      showLabels.forEach(idx => {
+        if (idx < monthlyData.length && !seen.has(idx)) {
+          seen.add(idx);
           const sp = document.createElement('span');
           sp.className = 'month-label-item';
           sp.textContent = monthlyData[idx].m.replace('20', "'");
           labels.appendChild(sp);
         }
       });
-    })();
+    }
 
-    // ── Average Votes SVG line chart ─────────────────────
-    (function() {
+    function renderAvgChart(monthlyData) {
       const el = document.getElementById('avg-chart');
       const data = monthlyData.map(d => d.votes / d.count);
       const w = 520, h = 160, pad = { t: 10, r: 10, b: 24, l: 40 };
@@ -753,8 +754,6 @@
       let areaD = pathD + ` L${x(data.length - 1).toFixed(1)},${(pad.t + ch).toFixed(1)} L${x(0).toFixed(1)},${(pad.t + ch).toFixed(1)} Z`;
 
       let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
-
-      // Grid lines
       const gridSteps = 4;
       for (let i = 0; i <= gridSteps; i++) {
         const gy = pad.t + (i / gridSteps) * ch;
@@ -762,39 +761,31 @@
         svg += `<line x1="${pad.l}" y1="${gy}" x2="${w - pad.r}" y2="${gy}" class="chart-grid-line"/>`;
         svg += `<text x="${pad.l - 6}" y="${gy + 3}" text-anchor="end" class="chart-label">${Math.round(val)}</text>`;
       }
-
       svg += `<path d="${areaD}" fill="var(--accent)" class="chart-area"/>`;
       svg += `<path d="${pathD}" stroke="var(--accent)" class="chart-line"/>`;
-
-      // Dots
       data.forEach((v, i) => {
         svg += `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" class="chart-dot" fill="var(--accent)">
           <title>${monthlyData[i].m}: ${v.toFixed(1)} avg votes</title>
         </circle>`;
       });
-
-      // X labels
       const labelIdx = [0, Math.floor(data.length / 3), Math.floor(2 * data.length / 3), data.length - 1];
       labelIdx.forEach(i => {
         svg += `<text x="${x(i).toFixed(1)}" y="${h - 2}" text-anchor="middle" class="chart-label">${monthlyData[i].m.replace('20', "'")}</text>`;
       });
-
       svg += '</svg>';
       el.innerHTML = svg;
-    })();
+    }
 
-    // ── Hourly Bar Chart ─────────────────────────────────
-    (function() {
+    function renderHourlyChart(hourlyData) {
       const el = document.getElementById('hourly-chart');
+      el.innerHTML = '';
       const max = Math.max(...hourlyData);
-
       hourlyData.forEach((v, i) => {
         const col = document.createElement('div');
         col.className = 'bar-col';
         const bar = document.createElement('div');
         bar.className = 'bar';
         bar.style.height = ((v / max) * 100) + '%';
-        // Color intensity based on value
         const intensity = v / max;
         if (intensity > 0.7) bar.style.background = 'var(--cyan)';
         else if (intensity > 0.4) bar.style.background = 'rgba(34, 211, 238, 0.6)';
@@ -803,13 +794,12 @@
         col.appendChild(bar);
         el.appendChild(col);
       });
-    })();
+    }
 
-    // ── Day of Week Chart ────────────────────────────────
-    (function() {
+    function renderDowChart(dowData) {
       const el = document.getElementById('dow-chart');
+      el.innerHTML = '';
       const max = Math.max(...dowData.map(d => d.count));
-
       dowData.forEach(d => {
         const row = document.createElement('div');
         row.className = 'dow-row';
@@ -822,13 +812,12 @@
         `;
         el.appendChild(row);
       });
-    })();
+    }
 
-    // ── Options Distribution Chart ───────────────────────
-    (function() {
+    function renderOptionsChart(optionsData) {
       const el = document.getElementById('options-chart');
+      el.innerHTML = '';
       const max = Math.max(...optionsData.map(d => d.count));
-
       optionsData.forEach(d => {
         const row = document.createElement('div');
         row.className = 'dow-row';
@@ -841,47 +830,89 @@
         `;
         el.appendChild(row);
       });
-    })();
+    }
 
-    // ── Creators Table ───────────────────────────────────
-    (function() {
+    function renderCreatorsTable(creatorsData) {
       const el = document.getElementById('creators-table');
+      el.innerHTML = '';
       creatorsData.forEach((c, i) => {
         const avg = (c.votes / c.polls).toFixed(1);
         el.innerHTML += `<tr>
           <td class="rank">${i + 1}</td>
-          <td class="creator-name">${c.name}</td>
+          <td class="creator-name">${escHtml(c.name)}</td>
           <td class="mono">${fmt(c.polls)}</td>
           <td class="mono">${fmt(c.votes)}</td>
           <td class="mono">${avg}</td>
         </tr>`;
       });
-    })();
+    }
 
-    // ── Top Polls Table ──────────────────────────────────
-    (function() {
+    function renderTopPolls(topPolls) {
       const el = document.getElementById('polls-table');
+      el.innerHTML = '';
       topPolls.forEach((p, i) => {
         el.innerHTML += `<tr>
           <td class="rank">${i + 1}</td>
-          <td class="poll-q" title="${p.q}">${p.q}</td>
-          <td style="color:var(--text-dim)">${p.creator}</td>
+          <td class="poll-q" title="${escHtml(p.q)}">${escHtml(p.q)}</td>
+          <td style="color:var(--text-dim)">${escHtml(p.creator)}</td>
           <td class="mono" style="color:var(--text-muted)">${p.date}</td>
           <td class="mono" style="color:var(--text)"><strong>${fmt(p.votes)}</strong></td>
         </tr>`;
       });
-    })();
+    }
 
-    // ── Unique Creators count ────────────────────────────
-    // We know from the data there are many unique creators; use an approximate from the JSON
-    fetch('polls.json')
-      .then(r => r.json())
-      .then(data => {
-        const unique = new Set(data.map(p => p.startedBy)).size;
-        document.getElementById('unique-creators').textContent = fmt(unique);
+    function renderFooter(totalPolls) {
+      document.getElementById('footer-count').textContent = fmt(totalPolls);
+    }
+
+    // ── Cache helpers (localStorage, 1 hour TTL) ────────
+    const CACHE_KEY = 'dgg-polls-data';
+    const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+    function getCached() {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        const { ts, data } = JSON.parse(raw);
+        if (Date.now() - ts > CACHE_TTL) return null;
+        return data;
+      } catch { return null; }
+    }
+
+    function setCache(data) {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+      } catch { /* storage full or unavailable */ }
+    }
+
+    // ── Fetch and render ─────────────────────────────────
+    const cached = getCached();
+    (cached ? Promise.resolve(cached) :
+      fetch('https://api.mitchdev.net/dgg/polls')
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then(data => { setCache(data); return data; })
+    ).then(data => {
+        const stats = aggregate(data);
+        const currentYear = new Date().getFullYear();
+
+        renderHeader(stats);
+        renderMetrics(stats);
+        renderYears(stats.years, currentYear);
+        renderMonthlyChart(stats.monthlyData);
+        renderAvgChart(stats.monthlyData);
+        renderHourlyChart(stats.hourlyData);
+        renderDowChart(stats.dowData);
+        renderOptionsChart(stats.optionsData);
+        renderCreatorsTable(stats.creatorsData);
+        renderTopPolls(stats.topPolls);
+        renderFooter(stats.totalPolls);
       })
-      .catch(() => {
-        document.getElementById('unique-creators').textContent = '—';
+      .catch(err => {
+        console.error('Failed to load poll data:', err);
+        document.getElementById('header-sub').textContent = 'Failed to load poll data. Please try refreshing.';
       });
   </script>
 </body>
