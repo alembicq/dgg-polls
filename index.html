@@ -313,6 +313,73 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    tbody tr.poll-row {
+      cursor: pointer;
+    }
+    tbody tr.poll-row:hover td:first-child::before {
+      content: '';
+    }
+    tr.poll-detail-row td {
+      padding: 0 !important;
+      border-bottom: 1px solid var(--border);
+    }
+    tr.poll-detail-row:last-child td {
+      border-bottom: none;
+    }
+    .poll-detail {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+      padding: 0 16px;
+    }
+    .poll-detail.open {
+      max-height: 500px;
+      padding: 12px 16px 16px;
+    }
+    .poll-detail-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .poll-option-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .poll-option-label {
+      width: 140px;
+      font-size: 12px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .poll-option-bar-track {
+      flex: 1;
+      height: 20px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .poll-option-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--accent);
+      transition: width 0.5s ease;
+    }
+    .poll-option-bar-fill.winner {
+      background: var(--green);
+    }
+    .poll-option-value {
+      width: 72px;
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      text-align: right;
+      flex-shrink: 0;
+    }
     .mono {
       font-family: var(--mono);
       font-size: 13px;
@@ -664,6 +731,8 @@
           creator: p.startedBy,
           date: p.startTime.slice(0, 10),
           q: p.question,
+          options: p.options,
+          optionVotes: p.votes,
         }));
 
       return { totalPolls, totalVotes, avgVotes, peakVotes, uniqueCreators, minDate, maxDate, years, monthlyData, hourlyData, dowData, optionsData, creatorsData, topPolls };
@@ -851,13 +920,44 @@
       const el = document.getElementById('polls-table');
       el.innerHTML = '';
       topPolls.forEach((p, i) => {
-        el.innerHTML += `<tr>
+        const maxOptVotes = Math.max(...p.optionVotes);
+        const winnerIdx = p.optionVotes.indexOf(maxOptVotes);
+        let optionsHtml = '';
+        p.options.forEach((opt, j) => {
+          const v = p.optionVotes[j];
+          const barPct = maxOptVotes > 0 ? ((v / maxOptVotes) * 100).toFixed(1) : 0;
+          const votePct = p.votes > 0 ? ((v / p.votes) * 100).toFixed(1) : 0;
+          const isWinner = j === winnerIdx && maxOptVotes > 0;
+          optionsHtml += `<div class="poll-option-row">
+            <span class="poll-option-label" title="${escHtml(opt)}">${escHtml(opt)}</span>
+            <div class="poll-option-bar-track">
+              <div class="poll-option-bar-fill${isWinner ? ' winner' : ''}" style="width:${barPct}%"></div>
+            </div>
+            <span class="poll-option-value">${fmt(v)} (${votePct}%)</span>
+          </div>`;
+        });
+        el.innerHTML += `<tr class="poll-row" data-poll-idx="${i}">
           <td class="rank">${i + 1}</td>
           <td class="poll-q" title="${escHtml(p.q)}">${escHtml(p.q)}</td>
           <td style="color:var(--text-dim)">${escHtml(p.creator)}</td>
           <td class="mono" style="color:var(--text-muted)">${p.date}</td>
           <td class="mono" style="color:var(--text)"><strong>${fmt(p.votes)}</strong></td>
+        </tr>
+        <tr class="poll-detail-row" data-poll-idx="${i}">
+          <td colspan="5">
+            <div class="poll-detail" id="poll-detail-${i}">
+              <div class="poll-detail-options">${optionsHtml}</div>
+            </div>
+          </td>
         </tr>`;
+      });
+
+      el.querySelectorAll('.poll-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const idx = row.getAttribute('data-poll-idx');
+          const detail = document.getElementById('poll-detail-' + idx);
+          detail.classList.toggle('open');
+        });
       });
     }
 
