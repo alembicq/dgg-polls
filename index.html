@@ -651,16 +651,199 @@
 
   <script>
     // ── Helpers ──────────────────────────────────────────
+    const API_URL = 'https://api.mitchdev.net/dgg/polls';
+    const UPDATE_OVERLAP_MS = 24 * 60 * 60 * 1000;
+
     const fmt = (n) => n.toLocaleString('en-US');
     const pct = (v, max) => ((v / max) * 100).toFixed(1);
-    const escHtml = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const escHtml = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+    function pollApiUrl(cursor) {
+      const url = new URL(API_URL);
+
+      if (cursor && typeof cursor === 'object') {
+        Object.entries(cursor).forEach(([key, value]) => {
+          if (value != null) url.searchParams.set(key, value);
+        });
+      }
+
+      return url.toString();
+    }
+
+    function readPollPage(payload) {
+      if (Array.isArray(payload)) {
+        return { polls: payload, nextCursor: null, totalCount: payload.length };
+      }
+
+      if (payload && Array.isArray(payload.data)) {
+        return {
+          polls: payload.data,
+          nextCursor: payload.nextCursor ?? null,
+          totalCount: Number.isFinite(Number(payload.totalCount)) ? Number(payload.totalCount) : null,
+        };
+      }
+
+      throw new Error('Unexpected poll API response');
+    }
+
+    function toNumber(value, fallback = 0) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : fallback;
+    }
+
+    function normalizePoll(raw) {
+      const votes = Array.isArray(raw?.votes) ? raw.votes.map(v => toNumber(v)) : [];
+      const options = Array.isArray(raw?.options) ? raw.options.map(option => String(option ?? '')) : [];
+      const voteTotal = votes.reduce((sum, vote) => sum + vote, 0);
+      const startTime = raw?.startTime ?? raw?.start_time ?? raw?.created_at ?? raw?.endTime ?? raw?.end_time;
+      const addedAt = raw?.addedAt ?? raw?.createdAt ?? raw?.created_at ?? startTime;
+
+      while (votes.length < options.length) votes.push(0);
+
+      return {
+        id: raw?.id ?? null,
+        question: String(raw?.question ?? raw?.q ?? '(untitled poll)'),
+        options,
+        votes,
+        totalVotes: toNumber(raw?.totalVotes ?? raw?.total_votes, voteTotal),
+        weighted: toNumber(raw?.weighted),
+        startedBy: String(raw?.startedBy ?? raw?.started_by ?? 'Unknown'),
+        duration: toNumber(raw?.duration),
+        startTime: String(startTime ?? ''),
+        endTime: String(raw?.endTime ?? raw?.end_time ?? startTime ?? ''),
+        addedAt: String(addedAt ?? startTime ?? ''),
+      };
+    }
+
+    function normalizePolls(rawPolls) {
+      const seen = new Set();
+
+      return rawPolls
+        .map(normalizePoll)
+        .filter(poll => {
+          const timestamp = Date.parse(poll.startTime);
+          if (!Number.isFinite(timestamp)) return false;
+
+          const key = poll.id ?? `${poll.startTime}:${poll.question}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+
+          return true;
+        });
+    }
+
+    function pollKey(poll) {
+      return poll.id ?? `${poll.startTime}:${poll.question}`;
+    }
+
+    function pollAddedTime(poll) {
+      const added = Date.parse(poll.addedAt);
+      if (Number.isFinite(added)) return added;
+
+      const started = Date.parse(poll.startTime);
+      return Number.isFinite(started) ? started : 0;
+    }
+
+    function latestAddedTime(polls) {
+      return polls.reduce((latest, poll) => Math.max(latest, pollAddedTime(poll)), 0);
+    }
+
+    function mergePolls(cachedPolls, freshPolls) {
+      const byKey = new Map();
+
+      normalizePolls(cachedPolls).forEach(poll => byKey.set(pollKey(poll), poll));
+      normalizePolls(freshPolls).forEach(poll => byKey.set(pollKey(poll), poll));
+
+      return Array.from(byKey.values()).sort((a, b) => {
+        const addedDiff = pollAddedTime(b) - pollAddedTime(a);
+        if (addedDiff) return addedDiff;
+
+        const startDiff = Date.parse(b.startTime) - Date.parse(a.startTime);
+        if (Number.isFinite(startDiff) && startDiff) return startDiff;
+
+        return toNumber(b.id) - toNumber(a.id);
+      });
+    }
+
+    function updateLoadingProgress(loaded, total) {
+      const totalText = total ? ` of ${fmt(total)}` : '';
+      document.getElementById('header-sub').textContent = `Loading poll data... ${fmt(loaded)}${totalText}`;
+    }
+
+    function updateRefreshProgress(loaded) {
+      document.getElementById('header-sub').textContent = `Checking for new polls... ${fmt(loaded)} fetched`;
+    }
+
+    async function fetchAllPolls() {
+      const rawPolls = [];
+      const seenCursors = new Set();
+      let cursor = null;
+      let totalCount = null;
+
+      while (true) {
+        const res = await fetch(pollApiUrl(cursor));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const page = readPollPage(await res.json());
+        rawPolls.push(...page.polls);
+        totalCount = page.totalCount ?? totalCount;
+        updateLoadingProgress(rawPolls.length, totalCount);
+
+        if (!page.nextCursor) break;
+
+        const cursorKey = JSON.stringify(page.nextCursor);
+        if (seenCursors.has(cursorKey)) {
+          throw new Error(`Repeated poll cursor ${cursorKey}`);
+        }
+
+        seenCursors.add(cursorKey);
+        cursor = page.nextCursor;
+      }
+
+      return normalizePolls(rawPolls);
+    }
+
+    async function fetchPollUpdates(cachedPolls) {
+      const newestCached = latestAddedTime(cachedPolls);
+      if (!newestCached) return fetchAllPolls();
+
+      const overlapCutoff = newestCached - UPDATE_OVERLAP_MS;
+      const freshPolls = [];
+      const seenCursors = new Set();
+      let cursor = null;
+
+      while (true) {
+        const res = await fetch(pollApiUrl(cursor));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const page = readPollPage(await res.json());
+        const polls = normalizePolls(page.polls);
+        freshPolls.push(...polls);
+        updateRefreshProgress(freshPolls.length);
+
+        if (polls.some(poll => pollAddedTime(poll) <= overlapCutoff)) break;
+        if (!page.nextCursor) break;
+
+        const cursorKey = JSON.stringify(page.nextCursor);
+        if (seenCursors.has(cursorKey)) {
+          throw new Error(`Repeated poll cursor ${cursorKey}`);
+        }
+
+        seenCursors.add(cursorKey);
+        cursor = page.nextCursor;
+      }
+
+      return mergePolls(cachedPolls, freshPolls);
+    }
 
     // ── Aggregate raw poll data ─────────────────────────
     function aggregate(data) {
+      if (!data.length) throw new Error('No poll data returned');
+
       const totalPolls = data.length;
       const totalVotes = data.reduce((s, p) => s + p.totalVotes, 0);
       const avgVotes = totalPolls ? (totalVotes / totalPolls) : 0;
-      const peakVotes = Math.max(...data.map(p => p.totalVotes));
+      const peakVotes = Math.max(0, ...data.map(p => p.totalVotes));
       const uniqueCreators = new Set(data.map(p => p.startedBy)).size;
 
       // Date range
@@ -965,55 +1148,83 @@
       document.getElementById('footer-count').textContent = fmt(totalPolls);
     }
 
-    // ── Cache helpers (localStorage, 1 hour TTL) ────────
-    const CACHE_KEY = 'dgg-polls-data';
-    const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+    // ── Cache helpers (localStorage, permanent data + 1 hour update checks) ──
+    const CACHE_KEY = 'dgg-polls-data-v2';
+    const CACHE_CHECK_INTERVAL = 60 * 60 * 1000; // 1 hour
 
     function getCached() {
       try {
         const raw = localStorage.getItem(CACHE_KEY);
         if (!raw) return null;
-        const { ts, data } = JSON.parse(raw);
-        if (Date.now() - ts > CACHE_TTL) return null;
-        return data;
+
+        const parsed = JSON.parse(raw);
+        const data = normalizePolls(Array.isArray(parsed) ? parsed : parsed.data);
+        if (!data.length) return null;
+
+        return {
+          checkedAt: toNumber(parsed.checkedAt ?? parsed.ts),
+          data,
+        };
       } catch { return null; }
     }
 
     function setCache(data) {
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+        const ts = Date.now();
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ ts, checkedAt: ts, data: normalizePolls(data) }));
       } catch { /* storage full or unavailable */ }
     }
 
-    // ── Fetch and render ─────────────────────────────────
-    const cached = getCached();
-    (cached ? Promise.resolve(cached) :
-      fetch('https://api.mitchdev.net/dgg/polls')
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => { setCache(data); return data; })
-    ).then(data => {
-        const stats = aggregate(data);
-        const currentYear = new Date().getFullYear();
+    function shouldCheckForUpdates(cache) {
+      return Date.now() - cache.checkedAt >= CACHE_CHECK_INTERVAL;
+    }
 
-        renderHeader(stats);
-        renderMetrics(stats);
-        renderYears(stats.years, currentYear);
-        renderMonthlyChart(stats.monthlyData);
-        renderAvgChart(stats.monthlyData);
-        renderHourlyChart(stats.hourlyData);
-        renderDowChart(stats.dowData);
-        renderOptionsChart(stats.optionsData);
-        renderCreatorsTable(stats.creatorsData);
-        renderTopPolls(stats.topPolls);
-        renderFooter(stats.totalPolls);
-      })
-      .catch(err => {
-        console.error('Failed to load poll data:', err);
-        document.getElementById('header-sub').textContent = 'Failed to load poll data. Please try refreshing.';
-      });
+    function renderDashboard(data) {
+      const stats = aggregate(data);
+      const currentYear = new Date().getFullYear();
+
+      renderHeader(stats);
+      renderMetrics(stats);
+      renderYears(stats.years, currentYear);
+      renderMonthlyChart(stats.monthlyData);
+      renderAvgChart(stats.monthlyData);
+      renderHourlyChart(stats.hourlyData);
+      renderDowChart(stats.dowData);
+      renderOptionsChart(stats.optionsData);
+      renderCreatorsTable(stats.creatorsData);
+      renderTopPolls(stats.topPolls);
+      renderFooter(stats.totalPolls);
+    }
+
+    async function loadPollData() {
+      const cache = getCached();
+
+      if (!cache) {
+        const data = await fetchAllPolls();
+        setCache(data);
+        renderDashboard(data);
+        return;
+      }
+
+      renderDashboard(cache.data);
+
+      if (!shouldCheckForUpdates(cache)) return;
+
+      try {
+        const updatedData = await fetchPollUpdates(cache.data);
+        setCache(updatedData);
+        renderDashboard(updatedData);
+      } catch (err) {
+        console.warn('Failed to refresh poll data:', err);
+        renderDashboard(cache.data);
+      }
+    }
+
+    // ── Fetch and render ─────────────────────────────────
+    loadPollData().catch(err => {
+      console.error('Failed to load poll data:', err);
+      document.getElementById('header-sub').textContent = 'Failed to load poll data. Please try refreshing.';
+    });
   </script>
 </body>
 </html>
